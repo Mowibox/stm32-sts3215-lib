@@ -5,8 +5,8 @@ A lightweight C library designed for STM32 microcontrollers (using STM32CubeIDE 
 ![Feetech](https://img.shields.io/badge/Feetech-Bus%20Servo-ee2524?)
 ![STM32](https://img.shields.io/badge/STM32-HAL%20C-03234b?logo=stmicroelectronics&logoColor=white)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-lightgrey.svg)](https://opensource.org/licenses/Apache-2.0)
-![Issues](https://img.shields.io/github/issues/Mowibox/chromapi_motherboard)
-![Stars](https://img.shields.io/github/stars/Mowibox/chromapi_motherboard?style=social)
+![Issues](https://img.shields.io/github/issues/Mowibox/stm32-sts3215-lib)
+![Stars](https://img.shields.io/github/stars/Mowibox/stm32-sts3215-lib?style=social)
 
 Designed to be easily dropped into any STM32CubeMX generated project.
 
