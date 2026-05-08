@@ -26,7 +26,9 @@ The Serial Bus Smart Servo Communication protocol is mainly applicable to the Po
 
 * **Magnetic Encoding series:** Servos adopt an ARM 32-bit single-chip computer as the main control core, and position induction adopts a 360-degree 12-bit precision magnet induction angle scheme. The communication level adopts RS485 mode with strong anti-interference capability. The communication still adopts asynchronous duplex, and the sending and receiving signals are processed asynchronously.
 
-**Question-and-answer communication** is adopted between the controller and the servo. The controller sends out the instruction package and the servo returns the response package.
+**Question-and-answer communication** is adopted between the controller and the servo. The controller sends out the instruction packet
+ and the servo returns the response packet
+.
 
 Multiple servos are allowed in a bus control network, so each servo is assigned a unique ID number in the network. The control instruction sent by the controller contains ID information. Only the servo matching the ID number can receive the command completely and return the response information.
 
@@ -38,7 +40,8 @@ The communication mode is **serial asynchronous.** A frame of data is divided in
 
 ## 1.1 Instruction Packet
 
-**Instruction package format:**
+**Instruction packet
+ format:**
 
 | Header | ID | Data Length | Instruction | Parameters | Checksum |
 | :--- | :--- | :--- | :--- | :--- | :--- |
@@ -47,7 +50,7 @@ The communication mode is **serial asynchronous.** A frame of data is divided in
 * **Header:** Continuous receipt of two `0xFF`s indicating the arrival of data packets.
 * **ID No.:** Each servo has an ID number. The ID number ranges from 0 to 253, converted to hexadecimal `0x00` to `0xFD`.
 * **Broadcast ID:** The ID No. 254 (e.g. `0xFE`) is a broadcast ID. If the ID number sent by the controller is 254, all the Servos receive instructions, and no response information is returned except for PING instructions (broadcast PING instruction cannot be used when multiple servos are connected to the serial bus).
-* **Data Length:** Equal to the parameter N to be sent plus 2, that is: N+2.
+* **Data Length:** Equal to the parameter N to be sent plus 2 (Instruction + Checksum), that is: N+2.
 * **Instruction:** Packet Operating Function Code (see [Section 1.3](#13-instruction-type)).
 * **Parameters:** In addition to the additional control information required by the instructions, the parameters support a maximum two-byte parameter to represent a memory value. The byte order refers to the manual memory control table for servo usage (different types of servo have different byte orders).
 * **Checksum:** Calculated as follows: `Checksum = ~(ID + Length + Instruction + Parameter1 + ... + ParameterN)`, where `~` symbol represents bitwise negation (e.g. taking the bitwise complement of a byte). If the sum in parentheses exceeds 255, the lowest byte will be taken.
@@ -64,7 +67,8 @@ The reply packet is the servo’s response to the controller.
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | `0xFF 0xFF` | `ID` | `Length` | `ERROR` | `Parameter1 ... ParameterN` | `Checksum` |
 
-* The returned response package contains the current status (`ERROR`) of the servo.
+* The returned response packet
+ contains the current status (`ERROR`) of the servo.
 * If the current status of the servo is not normal, it will be reflected through this byte (the meaning of each status is detailed in the manual memory control table).
 * If `ERROR` is `0`, the servo will have no error information.
 * If the instruction is a read instruction (`READ DATA`), then `Parameter1 ... ParameterN` is the information that have been read.
@@ -144,7 +148,8 @@ The PING instruction uses the broadcast address, and the servo also returns the 
 * ...
 * **Parameter N+1:** Number N Data
 
-**Example 3:** Sets an ID of any number to 1. The address of the ID number is 5 in the control table, so write 1 at address 5. The ID of the sending instruction package uses the broadcast ID (`0xFE`).
+**Example 3:** Sets an ID of any number to 1. The address of the ID number is 5 in the control table, so write 1 at address 5. The ID of the sending instruction packet
+ uses the broadcast ID (`0xFE`).
 
 *Instruction frame (sent in hexadecimal):* `FF FF FE 04 03 05 01 F4`
 
@@ -165,7 +170,8 @@ In the control table, the first address of the target location is `0x2A`, so six
 * Time data `0x0000` (0),
 * Speed data `0x03E8` (1000).
 
-The ID of the sending instruction package uses a non-broadcast ID (`0x01`).
+The ID of the sending instruction packet
+ uses a non-broadcast ID (`0x01`).
 
 *Instruction frame (sent in hexadecimal):* `FF FF 01 09 03 2A 00 08 00 00 E8 03 D5`
 
@@ -195,17 +201,28 @@ The REG WRITE instruction is similar to WRITE DATA except that the execution tim
 
 **Example 5:** Control ID = 1 to ID = 10 servos to rotate to 2048 position at 1000 steps per second. In the following instruction packets, only the ID = 1 is on the bus and receives the instruction and returns, and other ID are not returned on the bus.
 
-* **ID 1 Asynchronous Write Instruction package:** `FF FF 01 09 04 2A 00 08 00 00 E8 03 D4`
-* **ID 1 Return package:** `FF FF 01 02 00 FC`
-* **ID 2 Asynchronous Write Instruction package:** `FF FF 02 09 04 2A 00 08 00 00 E8 03 D3`
-* **ID 3 Asynchronous Write Instruction package:** `FF FF 03 09 04 2A 00 08 00 00 E8 03 D2`
-* **ID 4 Asynchronous Write Instruction package:** `FF FF 04 09 04 2A 00 08 00 00 E8 03 D1`
-* **ID 5 Asynchronous Write Instruction package:** `FF FF 05 09 04 2A 00 08 00 00 E8 03 D0`
-* **ID 6 Asynchronous Write Instruction package:** `FF FF 06 09 04 2A 00 08 00 00 E8 03 CF`
-* **ID 7 Asynchronous Write Instruction package:** `FF FF 07 09 04 2A 00 08 00 00 E8 03 CE`
-* **ID 8 Asynchronous Write Instruction package:** `FF FF 08 09 04 2A 00 08 00 00 E8 03 CD`
-* **ID 9 Asynchronous Write Instruction package:** `FF FF 09 09 04 2A 00 08 00 00 E8 03 CC`
-* **ID 10 Asynchronous Write Instruction package:** `FF FF 0A 09 04 2A 00 08 00 00 E8 03 CB`
+* **ID 1 Asynchronous Write Instruction packet
+:** `FF FF 01 09 04 2A 00 08 00 00 E8 03 D4`
+* **ID 1 Return packet
+:** `FF FF 01 02 00 FC`
+* **ID 2 Asynchronous Write Instruction packet
+:** `FF FF 02 09 04 2A 00 08 00 00 E8 03 D3`
+* **ID 3 Asynchronous Write Instruction packet
+:** `FF FF 03 09 04 2A 00 08 00 00 E8 03 D2`
+* **ID 4 Asynchronous Write Instruction packet
+:** `FF FF 04 09 04 2A 00 08 00 00 E8 03 D1`
+* **ID 5 Asynchronous Write Instruction packet
+:** `FF FF 05 09 04 2A 00 08 00 00 E8 03 D0`
+* **ID 6 Asynchronous Write Instruction packet
+:** `FF FF 06 09 04 2A 00 08 00 00 E8 03 CF`
+* **ID 7 Asynchronous Write Instruction packet
+:** `FF FF 07 09 04 2A 00 08 00 00 E8 03 CE`
+* **ID 8 Asynchronous Write Instruction packet
+:** `FF FF 08 09 04 2A 00 08 00 00 E8 03 CD`
+* **ID 9 Asynchronous Write Instruction packet
+:** `FF FF 09 09 04 2A 00 08 00 00 E8 03 CC`
+* **ID 10 Asynchronous Write Instruction packet
+:** `FF FF 0A 09 04 2A 00 08 00 00 E8 03 CB`
 
 ### 1.3.5 ACTION (Executing Asynchronous Write Instruction)
 
@@ -216,7 +233,8 @@ The REG WRITE instruction is similar to WRITE DATA except that the execution tim
 
 ACTION instructions are very useful for controlling multiple servos at the same time. When controlling multiple servos, the ACTION instruction enables the first and last servos to perform their respective actions simultaneously without delay. When the action instruction is sent to multiple servos, the broadcast ID (`0xFE`) is used, so no data frame will be returned when the instruction is sent.
 
-**Example 6:** After issuing the asynchronous writing instructions that control ID 1 to ID 10 servos to rotate at 2048 position at a speed of 1000 steps per second, the following instruction package (`FF FF FE 02 05 FA`) needs to be sent when the asynchronous writing instructions need to be executed. All servos on the bus receive this instruction and run the asynchronous writing instruction received before.
+**Example 6:** After issuing the asynchronous writing instructions that control ID 1 to ID 10 servos to rotate at 2048 position at a speed of 1000 steps per second, the following instruction packet
+ (`FF FF FE 02 05 FA`) needs to be sent when the asynchronous writing instructions need to be executed. All servos on the bus receive this instruction and run the asynchronous writing instruction received before.
 
 ### 1.3.6 SYNC WRITE
 
@@ -264,31 +282,37 @@ Because broadcasting ID is used to send instructions, no data is returned.
 
 A SYNC READ instruction can query the contents of the control
 tables of multiple servos at one time. The SYNC READ instruction specifies the ID of the servos to be queried, and the order in which the
-servos return the response packages is the ID order in the instruction
-package. When using the SYNC READ instruction, the data length and the first address of all queries must be the same (this instruction is open to some serial bus servos).
+servos return the response packet
+s is the ID order in the instruction
+packet
+. When using the SYNC READ instruction, the data length and the first address of all queries must be the same (this instruction is open to some serial bus servos).
 
 **Example 8:** Inquires about the first address `0x38` of two servos (ID = 1 and ID = 2), including the data of current position, current speed, current load, current voltage, and current temperature. This totals 8 bytes of data (the low byte comes first and the high byte comes last).
 
-*Synchronous reading instruction package (sent in hexadecimal):* `FF FF FE 06 82 38 08 01 02 36`
+*Synchronous reading instruction packet
+ (sent in hexadecimal):* `FF FF FE 06 82 38 08 01 02 36`
 
 | Header | ID | Effective data length | Instruction | Parameter | Checksum |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | `0xFF 0xFF` | `0xFE` | `0x06` | `0x82` | `0x38 0x08 0x01 0x02` | `0x36` |
 
-*Return packages (hexadecimal display):*
+*Return packet
+s (hexadecimal display):*
 
 * `FF FF 01 0A 00 00 08 00 00 00 00 79 1E 55`
 * `FF FF 02 0A 00 FF 07 00 00 00 00 77 23 53`
 
 *Decoding the return packets:*
 
-**ID = 1 return package:** `FF FF 01 0A 00 00 08 00 00 00 00 79 1E 55`
+**ID = 1 return packet
+:** `FF FF 01 0A 00 00 08 00 00 00 00 79 1E 55`
 
 | Header | ID | Effective Data length | Working status | Parameters | Checksum |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | `0xFF 0xFF` | `0x01` | `0x0A` | `0x00` | `0x00 0x08 0x00 0x00 0x00 0x00 0x79 0x1E` | `0x55` |
 
-**ID = 2 response package:** `FF FF 02 0A 00 FF 07 00 00 00 00 77 23 53`
+**ID = 2 response packet
+:** `FF FF 02 0A 00 FF 07 00 00 00 00 77 23 53`
 
 | Header | ID | Effective Data length | Working status | Parameters | Checksum |
 | :--- | :--- | :--- | :--- | :--- | :--- |
