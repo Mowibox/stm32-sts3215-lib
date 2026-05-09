@@ -33,9 +33,23 @@ Designed to be easily dropped into any STM32CubeMX generated project.
 ## Documentation
 
 * [Communication Protocol Manual](./docs/protocol_manual.md) (Corrected definitions for Sync Read, Checksums, and limits).
-* [STS3215 Memory Table](./docs/memory_table.md) (Register addresses, default values, and operational constraints).
+* [STS3215 Memory Table](./docs/sts3215_memory_table.md) (Register addresses, default values, and operational constraints).
 
 ## Usage & Integration
+
+Usart 
+* Mode Asyncronous
+* Baudrate 1000000bps
+* Assertion Time : 8 Sample time unit
+* Deassertion Time : 8 Sample time unit
+
+In DMA section of usart add two channel for rx and tx and change priority to high
+
+NVIC section 
+DMA1 channelX interrupt : enable 
+DMA1 channelY interrupt : enable 
+USART2 global interrupt : enable 
+with all of them with the same preemption priority
 
 ## Contributions
 
