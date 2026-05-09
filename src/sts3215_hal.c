@@ -55,29 +55,29 @@ static STS3215_HAL_Handle_t *s_instance = NULL;
  */
 static void prv_start_rx(STS3215_HAL_Handle_t *hservo)
 {
-    memset(hservo->rx_buf, 0, STS3215_HAL_RX_BUF_SIZE);
-    hservo->rx_received_len = 0U;
+	memset(hservo->rx_buf, 0, STS3215_HAL_RX_BUF_SIZE);
+	hservo->rx_received_len = 0U;
 
-    __HAL_UART_FLUSH_DRREGISTER(hservo->huart);
-    __HAL_UART_CLEAR_OREFLAG(hservo->huart);
+	__HAL_UART_FLUSH_DRREGISTER(hservo->huart);
+	__HAL_UART_CLEAR_OREFLAG(hservo->huart);
 
-    HAL_StatusTypeDef status = HAL_UARTEx_ReceiveToIdle_DMA(
-        hservo->huart,
-        hservo->rx_buf,
-        STS3215_HAL_RX_BUF_SIZE
-    );
+	HAL_StatusTypeDef status = HAL_UARTEx_ReceiveToIdle_DMA(
+			hservo->huart,
+			hservo->rx_buf,
+			STS3215_HAL_RX_BUF_SIZE
+	);
 
-    if (status != HAL_OK) {
-        hservo->last_error = STS3215_HAL_ERR_DMA_RX;
-        hservo->state = STS3215_HAL_STATE_ERROR;
-        if (hservo->on_error != NULL) {
-            hservo->on_error(STS3215_HAL_ERR_DMA_RX, hservo->user_ctx);
-        }
-        hservo->state = STS3215_HAL_STATE_IDLE;
-    } else {
-        hservo->state = STS3215_HAL_STATE_RX_BUSY;
-        hservo->tx_timestamp_ms  = HAL_GetTick();
-    }
+	if (status != HAL_OK) {
+		hservo->last_error = STS3215_HAL_ERR_DMA_RX;
+		hservo->state = STS3215_HAL_STATE_ERROR;
+		if (hservo->on_error != NULL) {
+			hservo->on_error(STS3215_HAL_ERR_DMA_RX, hservo->user_ctx);
+		}
+		hservo->state = STS3215_HAL_STATE_IDLE;
+	} else {
+		hservo->state = STS3215_HAL_STATE_RX_BUSY;
+		hservo->tx_timestamp_ms  = HAL_GetTick();
+	}
 }
 
 /**
@@ -86,35 +86,35 @@ static void prv_start_rx(STS3215_HAL_Handle_t *hservo)
  */
 static void prv_parse_rx_buffer(STS3215_HAL_Handle_t *hservo, uint16_t buf_len)
 {
-    uint16_t offset  = 0U;
-    uint8_t  parsed  = 0U;
+	uint16_t offset  = 0U;
+	uint8_t  parsed  = 0U;
 
-    while ((parsed < hservo->expected_replies) && (offset < buf_len)) {
+	while ((parsed < hservo->expected_replies) && (offset < buf_len)) {
 
-        uint16_t remaining = buf_len - offset;
-        STS3215_Reply_t reply;
+		uint16_t remaining = buf_len - offset;
+		STS3215_Reply_t reply;
 
-        STS3215_Status_t status = STS3215_ParseReply(
-            &hservo->rx_buf[offset],
-            remaining,
-            &reply
-        );
+		STS3215_Status_t status = STS3215_ParseReply(
+				&hservo->rx_buf[offset],
+				remaining,
+				&reply
+		);
 
-        if (status == STS3215_OK || status == STS3215_ERR_SERVO_FAULT) {
-            if (hservo->on_reply != NULL) {
-                hservo->on_reply(&reply, parsed, status, hservo->user_ctx);
-            }
+		if (status == STS3215_OK || status == STS3215_ERR_SERVO_FAULT) {
+			if (hservo->on_reply != NULL) {
+				hservo->on_reply(&reply, parsed, status, hservo->user_ctx);
+			}
 
-            offset += (uint16_t)(6U + (uint16_t)reply.data_len);
-            parsed++;
+			offset += (uint16_t)(6U + (uint16_t)reply.data_len);
+			parsed++;
 
-        } else {
-            if (hservo->on_error != NULL) {
-                hservo->on_error(STS3215_HAL_ERR_PARSE, hservo->user_ctx);
-            }
-            break;
-        }
-    }
+		} else {
+			if (hservo->on_error != NULL) {
+				hservo->on_error(STS3215_HAL_ERR_PARSE, hservo->user_ctx);
+			}
+			break;
+		}
+	}
 }
 
 /* =========================================================================
@@ -122,115 +122,115 @@ static void prv_parse_rx_buffer(STS3215_HAL_Handle_t *hservo, uint16_t buf_len)
  * ========================================================================= */
 
 void STS3215_HAL_Init(STS3215_HAL_Handle_t *hservo,
-                      UART_HandleTypeDef *huart,
-                      uint32_t reply_timeout_ms,
-                      STS3215_HAL_ReplyCallback_t  on_reply,
-                      STS3215_HAL_ErrorCallback_t  on_error,
-                      void *user_ctx)
+		UART_HandleTypeDef *huart,
+		uint32_t reply_timeout_ms,
+		STS3215_HAL_ReplyCallback_t  on_reply,
+		STS3215_HAL_ErrorCallback_t  on_error,
+		void *user_ctx)
 {
-    if (hservo == NULL || huart == NULL) { return; }
+	if (hservo == NULL || huart == NULL) { return; }
 
-    memset(hservo, 0, sizeof(STS3215_HAL_Handle_t));
+	memset(hservo, 0, sizeof(STS3215_HAL_Handle_t));
 
-    hservo->huart = huart;
-    hservo->reply_timeout_ms = (reply_timeout_ms > 0U)
-                                 ? reply_timeout_ms
-                                 : STS3215_HAL_REPLY_TIMEOUT_MS;
-    hservo->on_reply = on_reply;
-    hservo->on_error  = on_error;
-    hservo->user_ctx = user_ctx;
-    hservo->state = STS3215_HAL_STATE_IDLE;
-    hservo->last_error  = STS3215_HAL_ERR_NONE;
+	hservo->huart = huart;
+	hservo->reply_timeout_ms = (reply_timeout_ms > 0U)
+                                		 ? reply_timeout_ms
+                                				 : STS3215_HAL_REPLY_TIMEOUT_MS;
+	hservo->on_reply = on_reply;
+	hservo->on_error  = on_error;
+	hservo->user_ctx = user_ctx;
+	hservo->state = STS3215_HAL_STATE_IDLE;
+	hservo->last_error  = STS3215_HAL_ERR_NONE;
 }
 
 void STS3215_HAL_RegisterInstance(STS3215_HAL_Handle_t *hservo)
 {
-    s_instance = hservo;
+	s_instance = hservo;
 }
 
 STS3215_Status_t STS3215_HAL_SendFrame(STS3215_HAL_Handle_t *hservo,
-                                        const uint8_t *frame,
-                                        uint16_t len,
-                                        bool is_broadcast,
-                                        uint8_t expected_replies)
+		const uint8_t *frame,
+		uint16_t len,
+		bool is_broadcast,
+		uint8_t expected_replies)
 {
-    if (hservo == NULL || frame == NULL) { return STS3215_ERR_NULL_PTR; }
+	if (hservo == NULL || frame == NULL) { return STS3215_ERR_NULL_PTR; }
 
-    if (hservo->state != STS3215_HAL_STATE_IDLE) {
-        if (hservo->on_error != NULL) {
-            hservo->on_error(STS3215_HAL_ERR_BUSY, hservo->user_ctx);
-        }
-        return STS3215_ERR_INVALID_PARAM;
-    }
+	if (hservo->state != STS3215_HAL_STATE_IDLE) {
+		if (hservo->on_error != NULL) {
+			hservo->on_error(STS3215_HAL_ERR_BUSY, hservo->user_ctx);
+		}
+		return STS3215_ERR_INVALID_PARAM;
+	}
 
-    if (len > (uint16_t)STS3215_TX_BUF_SIZE) {
-        return STS3215_ERR_INVALID_PARAM;
-    }
+	if (len > (uint16_t)STS3215_TX_BUF_SIZE) {
+		return STS3215_ERR_INVALID_PARAM;
+	}
 
-    memcpy(hservo->tx_buf, frame, len);
+	memcpy(hservo->tx_buf, frame, len);
 
-    hservo->is_broadcast = is_broadcast;
-    hservo->expected_replies  = (is_broadcast ? 0U : expected_replies);
-    hservo->state = STS3215_HAL_STATE_TX_BUSY;
+	hservo->is_broadcast = is_broadcast;
+	hservo->expected_replies  = (is_broadcast ? 0U : expected_replies);
+	hservo->state = STS3215_HAL_STATE_TX_BUSY;
 
-    HAL_StatusTypeDef status = HAL_UART_Transmit_DMA(
-        hservo->huart,
-        hservo->tx_buf,
-        len
-    );
+	HAL_StatusTypeDef status = HAL_UART_Transmit_DMA(
+			hservo->huart,
+			hservo->tx_buf,
+			len
+	);
 
-    if (status != HAL_OK) {
-        hservo->state = STS3215_HAL_STATE_ERROR;
-        hservo->last_error = STS3215_HAL_ERR_DMA_TX;
-        if (hservo->on_error != NULL) {
-            hservo->on_error(STS3215_HAL_ERR_DMA_TX, hservo->user_ctx);
-        }
-        hservo->state = STS3215_HAL_STATE_IDLE;
-        return STS3215_ERR_INVALID_PARAM;
-    }
+	if (status != HAL_OK) {
+		hservo->state = STS3215_HAL_STATE_ERROR;
+		hservo->last_error = STS3215_HAL_ERR_DMA_TX;
+		if (hservo->on_error != NULL) {
+			hservo->on_error(STS3215_HAL_ERR_DMA_TX, hservo->user_ctx);
+		}
+		hservo->state = STS3215_HAL_STATE_IDLE;
+		return STS3215_ERR_INVALID_PARAM;
+	}
 
-    return STS3215_OK;
+	return STS3215_OK;
 }
 
 void STS3215_HAL_Process(STS3215_HAL_Handle_t *hservo)
 {
-    if (hservo == NULL) { return; }
-    if (hservo->state == STS3215_HAL_STATE_RX_BUSY) {
-        uint32_t elapsed = HAL_GetTick() - hservo->tx_timestamp_ms;
-        if (elapsed >= hservo->reply_timeout_ms) {
-            /* Stop the RX DMA cleanly */
-            HAL_UART_DMAStop(hservo->huart);
-            __HAL_UART_FLUSH_DRREGISTER(hservo->huart);
+	if (hservo == NULL) { return; }
+	if (hservo->state == STS3215_HAL_STATE_RX_BUSY) {
+		uint32_t elapsed = HAL_GetTick() - hservo->tx_timestamp_ms;
+		if (elapsed >= hservo->reply_timeout_ms) {
+			/* Stop the RX DMA cleanly */
+			HAL_UART_DMAStop(hservo->huart);
+			__HAL_UART_FLUSH_DRREGISTER(hservo->huart);
 
-            hservo->last_error = STS3215_HAL_ERR_TIMEOUT;
-            hservo->state      = STS3215_HAL_STATE_IDLE;
+			hservo->last_error = STS3215_HAL_ERR_TIMEOUT;
+			hservo->state      = STS3215_HAL_STATE_IDLE;
 
-            if (hservo->on_error != NULL) {
-                hservo->on_error(STS3215_HAL_ERR_TIMEOUT, hservo->user_ctx);
-            }
-        }
-    }
+			if (hservo->on_error != NULL) {
+				hservo->on_error(STS3215_HAL_ERR_TIMEOUT, hservo->user_ctx);
+			}
+		}
+	}
 }
 
 void STS3215_HAL_Abort(STS3215_HAL_Handle_t *hservo)
 {
-    if (hservo == NULL) { return; }
+	if (hservo == NULL) { return; }
 
-    HAL_UART_DMAStop(hservo->huart);
-    __HAL_UART_FLUSH_DRREGISTER(hservo->huart);
+	HAL_UART_DMAStop(hservo->huart);
+	__HAL_UART_FLUSH_DRREGISTER(hservo->huart);
 
-    hservo->state      = STS3215_HAL_STATE_IDLE;
-    hservo->last_error = STS3215_HAL_ERR_NONE;
+	hservo->state      = STS3215_HAL_STATE_IDLE;
+	hservo->last_error = STS3215_HAL_ERR_NONE;
 }
 
 STS3215_HAL_State_t STS3215_HAL_GetState(const STS3215_HAL_Handle_t *hservo)
 {
-    return (hservo != NULL) ? hservo->state : STS3215_HAL_STATE_ERROR;
+	return (hservo != NULL) ? hservo->state : STS3215_HAL_STATE_ERROR;
 }
 
 bool STS3215_HAL_IsIdle(const STS3215_HAL_Handle_t *hservo)
 {
-    return (hservo != NULL) && (hservo->state == STS3215_HAL_STATE_IDLE);
+	return (hservo != NULL) && (hservo->state == STS3215_HAL_STATE_IDLE);
 }
 
 /* =========================================================================
@@ -243,15 +243,15 @@ bool STS3215_HAL_IsIdle(const STS3215_HAL_Handle_t *hservo)
  */
 void STS3215_HAL_TxCpltCallback(STS3215_HAL_Handle_t *hservo)
 {
-    if (hservo == NULL || hservo->state != STS3215_HAL_STATE_TX_BUSY) {
-        return;
-    }
+	if (hservo == NULL || hservo->state != STS3215_HAL_STATE_TX_BUSY) {
+		return;
+	}
 
-    if (hservo->is_broadcast || hservo->expected_replies == 0U) {
-        hservo->state = STS3215_HAL_STATE_IDLE;
-    } else {
-        prv_start_rx(hservo);
-    }
+	if (hservo->is_broadcast || hservo->expected_replies == 0U) {
+		hservo->state = STS3215_HAL_STATE_IDLE;
+	} else {
+		prv_start_rx(hservo);
+	}
 }
 
 /**
@@ -262,15 +262,15 @@ void STS3215_HAL_TxCpltCallback(STS3215_HAL_Handle_t *hservo)
  */
 void STS3215_HAL_RxEventCallback(STS3215_HAL_Handle_t *hservo, uint16_t size)
 {
-    if (hservo == NULL || hservo->state != STS3215_HAL_STATE_RX_BUSY) {
-        return;
-    }
+	if (hservo == NULL || hservo->state != STS3215_HAL_STATE_RX_BUSY) {
+		return;
+	}
 
-    hservo->rx_received_len = size;
+	hservo->rx_received_len = size;
 
-    prv_parse_rx_buffer(hservo, size);
+	prv_parse_rx_buffer(hservo, size);
 
-    hservo->state = STS3215_HAL_STATE_IDLE;
+	hservo->state = STS3215_HAL_STATE_IDLE;
 }
 
 /**
@@ -279,21 +279,21 @@ void STS3215_HAL_RxEventCallback(STS3215_HAL_Handle_t *hservo, uint16_t size)
  */
 void STS3215_HAL_ErrorCallback(STS3215_HAL_Handle_t *hservo)
 {
-    if (hservo == NULL) { return; }
+	if (hservo == NULL) { return; }
 
-    HAL_UART_DMAStop(hservo->huart);
-    __HAL_UART_FLUSH_DRREGISTER(hservo->huart);
+	HAL_UART_DMAStop(hservo->huart);
+	__HAL_UART_FLUSH_DRREGISTER(hservo->huart);
 
-    STS3215_HAL_Error_t err = (hservo->state == STS3215_HAL_STATE_TX_BUSY)
-                               ? STS3215_HAL_ERR_DMA_TX
-                               : STS3215_HAL_ERR_DMA_RX;
+	STS3215_HAL_Error_t err = (hservo->state == STS3215_HAL_STATE_TX_BUSY)
+                            		   ? STS3215_HAL_ERR_DMA_TX
+                            				   : STS3215_HAL_ERR_DMA_RX;
 
-    hservo->last_error = err;
-    hservo->state      = STS3215_HAL_STATE_IDLE;
+	hservo->last_error = err;
+	hservo->state      = STS3215_HAL_STATE_IDLE;
 
-    if (hservo->on_error != NULL) {
-        hservo->on_error(err, hservo->user_ctx);
-    }
+	if (hservo->on_error != NULL) {
+		hservo->on_error(err, hservo->user_ctx);
+	}
 }
 
 /* =========================================================================
@@ -308,23 +308,23 @@ void STS3215_HAL_ErrorCallback(STS3215_HAL_Handle_t *hservo)
 
 void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
 {
-    if ((s_instance != NULL) && (s_instance->huart == huart)) {
-        STS3215_HAL_TxCpltCallback(s_instance);
-    }
+	if ((s_instance != NULL) && (s_instance->huart == huart)) {
+		STS3215_HAL_TxCpltCallback(s_instance);
+	}
 }
 
 void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t size)
 {
-    if ((s_instance != NULL) && (s_instance->huart == huart)) {
-        STS3215_HAL_RxEventCallback(s_instance, size);
-    }
+	if ((s_instance != NULL) && (s_instance->huart == huart)) {
+		STS3215_HAL_RxEventCallback(s_instance, size);
+	}
 }
 
 void HAL_UART_ErrorCallback(UART_HandleTypeDef *huart)
 {
-    if ((s_instance != NULL) && (s_instance->huart == huart)) {
-        STS3215_HAL_ErrorCallback(s_instance);
-    }
+	if ((s_instance != NULL) && (s_instance->huart == huart)) {
+		STS3215_HAL_ErrorCallback(s_instance);
+	}
 }
 
 #endif /* STS3215_HAL_NO_WEAK_OVERRIDE */
