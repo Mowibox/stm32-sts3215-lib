@@ -1,6 +1,6 @@
 # STM32 Feetech Servo Driver
 
-A lightweight C library designed for STM32 microcontrollers (using STM32CubeIDE and HAL) to control Feetech Serial Bus Smart Servos (specifically the [**STS3215**](https://www.feetechrc.com/74v-19-kgcm-plastic-case-metal-tooth-magnetic-code-double-axis-ttl-series-steering-gear.html)) magnetic encoding series via RS485.
+A lightweight C library designed for STM32 microcontrollers (using STM32CubeIDE and HAL) to control Feetech Serial Bus Smart Servos (specifically the [**STS3215**](https://www.feetechrc.com/74v-19-kgcm-plastic-case-metal-tooth-magnetic-code-double-axis-ttl-series-steering-gear.html)) Magnetic Encoding series via RS485.
 
 ![Feetech](https://img.shields.io/badge/Feetech-Bus%20Servo-ee2524?)
 ![STM32](https://img.shields.io/badge/STM32-HAL%20C-03234b?logo=stmicroelectronics&logoColor=white)
@@ -46,7 +46,7 @@ Designed to be easily dropped into any STM32CubeMX generated project.
 
 ## Documentation
 
-- [Communication Protocol Manual](./docs/protocol_manual.md) (Corrected definitions for Sync Read, Checksums, and limits).
+- [Communication Protocol Manual](./docs/protocol_manual.md) (Feetech Official Protocol Manual for Smarts Servos).
 - [STS3215 Memory Table](./docs/sts3215_memory_table.md) (Register addresses, default values, and operational constraints).
 
 ## Usage & Integration
