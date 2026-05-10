@@ -8,6 +8,10 @@ A lightweight C library designed for STM32 microcontrollers (using STM32CubeIDE 
 ![Issues](https://img.shields.io/github/issues/Mowibox/stm32-sts3215-lib)
 ![Stars](https://img.shields.io/github/stars/Mowibox/stm32-sts3215-lib?style=social)
 
+<p align="center">
+  <img alt="STS3215 Feetech Servo" src="sts3215.png"/>
+</p>
+
 Designed to be easily dropped into any STM32CubeMX generated project.
 
 ## Table of contents
@@ -54,7 +58,6 @@ Designed to be easily dropped into any STM32CubeMX generated project.
 | MCU | STM32G431KBT6 (or any STM32 with USART + DMA + RS485 hardware mode) |
 | Servo | Feetech STS3215 |
 | Interface | RS485 transceiver with DE pin |
-| Supply voltage | 7.4 V (2S LiPo recommended) |
 
 ---
 
