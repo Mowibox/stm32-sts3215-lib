@@ -23,6 +23,16 @@ Designed to be easily dropped into any STM32CubeMX generated project.
 
 ## Features
 
+- **RS485 hardware DE management** — Driver Enable pin controlled directly by the STM32 USART peripheral in RS485 mode (no GPIO toggling, no timing risk)
+- **Non-blocking DMA transfers** — TX and RX both run on DMA with IDLE line detection, freeing the CPU and RTOS scheduler during bus transactions
+- **Layered architecture** — Protocol logic (`sts3215_protocol.c`) is fully decoupled from the HAL layer (`sts3215_hal.c`); the protocol layer has zero STM32 dependency and can be unit-tested on a host PC with any C99 compiler
+- **Complete register coverage** — All STS3215 EEPROM and SRAM registers documented with addresses, sizes, default values, units, and access rights (`sts3215_regs.h`)
+- **Full instruction set** — Builders for every protocol instruction: `PING`, `READ`, `WRITE`, `REG_WRITE`, `ACTION`, `SYNC_READ`, `SYNC_WRITE`, `RESET`, and `RESET_TURNS`
+- **Atomic motion commands** — Position, speed, and acceleration packed into a single write frame (registers `0x29`→`0x2F`) to prevent partial-update race conditions
+- **Synchronised multi-servo control** — `REG_WRITE` + broadcast `ACTION` pattern for frame-accurate simultaneous motion across any number of servos on the bus
+- **EEPROM write protection** — Explicit `UnlockEEPROM` / `LockEEPROM` helpers enforce the mandatory write-lock sequence before any persistent configuration change
+- **Unit conversion helpers** — Steps <-> degrees <-> radians, raw current -> milliamps, raw voltage -> volts, all as inline-friendly functions.
+
 ## Author
 
 | |
@@ -32,31 +42,249 @@ Designed to be easily dropped into any STM32CubeMX generated project.
 
 ## Documentation
 
-* [Communication Protocol Manual](./docs/protocol_manual.md) (Corrected definitions for Sync Read, Checksums, and limits).
-* [STS3215 Memory Table](./docs/sts3215_memory_table.md) (Register addresses, default values, and operational constraints).
+- [Communication Protocol Manual](./docs/protocol_manual.md) (Corrected definitions for Sync Read, Checksums, and limits).
+- [STS3215 Memory Table](./docs/sts3215_memory_table.md) (Register addresses, default values, and operational constraints).
 
 ## Usage & Integration
 
-Usart 
-* Mode Asyncronous
-* Baudrate 1000000bps
-* Assertion Time : 8 Sample time unit
-* Deassertion Time : 8 Sample time unit
+### 1 — Hardware Requirements
 
-In DMA section of usart add two channel for rx and tx and change priority to high
+| Component | Specification |
+| --------- | ------------- |
+| MCU | STM32G431KBT6 (or any STM32 with USART + DMA + RS485 hardware mode) |
+| Servo | Feetech STS3215 |
+| Interface | RS485 transceiver with DE pin |
+| Supply voltage | 7.4 V (2S LiPo recommended) |
 
-NVIC section 
-DMA1 channelX interrupt : enable 
-DMA1 channelY interrupt : enable 
-USART2 global interrupt : enable 
-with all of them with the same preemption priority
+---
+
+### 2 — STM32CubeIDE .ioc Configuration
+
+#### 2.1 Pinout
+
+**Pinout used in this documentation:**
+
+In the **Pinout & Configuration** tab, assign:
+
+```text
+PA1 → USART2_DE  
+PA2 → USART2_TX
+PA3 → USART2_RX
+```
+
+> [!NOTE]
+> You can assign and use any other USART that has a driver enable pin, provided you make the necessary changes to the files afterward.
+
+#### 2.2 USART2 — Mode
+
+Go the the **Connectivity** section and configure the chosen USART:
+
+```text
+  Mode: Asynchronous
+  Hardware Flow Control (RS485): ☑ Enabled
+```
+
+#### 2.3 USART2 — Parameter Settings
+
+Click on the **Parameters Settings** tab of your USART and configure it as shown below:
+
+| Parameter | Value |
+| --------- | ----- |
+| Baud Rate | `1000000 Bits/s` |
+| Word Length | `8 Bits` |
+| Parity | `None` |
+| Stop Bits | `1` |
+| Data Direction | `Receive and Transmit` |
+| Over Sampling | `16 Samples` |
+| Single Wire (Half Duplex) | `Disable` |
+| DE Polarity | `High` |
+| DE Assertion Time | `8 Sample Time Unit` |
+| DE Deassertion Time | `8 Sample Time Unit` |
+
+#### 2.4 USART2 — DMA Settings
+
+Go to **System Core > DMA** tab to add two DMA channels:
+
+| DMA Request | Direction | Priority | Mode | Mem Increment |
+| ----------- | --------- | -------- | ---- | ------------- |
+| `USART2_TX` | Memory To Peripheral | High | Normal | Enabled |
+| `USART2_RX` | Peripheral To Memory | High | Normal | Enabled |
+
+#### 2.5 NVIC
+
+In the **NVIC** tab, enable the following interrupts and set them to the **same preemption priority** (e.g., `5`):
+
+```text
+☑ USART2 global interrupt — Preemption Priority 5
+☑ DMA1 Channel[X] global interrupt — Preemption Priority 5
+☑ DMA1 Channel[Y] global interrupt — Preemption Priority 5
+```
+
+Where [X] and [Y] are the channels you have defined for your DMA (TX/RX)
+
+> [!WARNING]
+> De not forget to **regenerate code** before proceeding!
+
+---
+
+### 3 — File Placement
+
+Copy the library files into your CubeIDE project as follows:
+
+```text
+YourProject/
+└── Core/
+    ├── Inc/
+    │   ├── main.h 
+    │   ├── sts3215_regs.h ← 
+    │   ├── sts3215_protocol.h ←
+    │   └── sts3215_hal.h ←
+    └── Src/
+        ├── main.c 
+        ├── sts3215_protocol.c ←
+        └── sts3215_hal.c ←
+```
+
+---
+
+### 4 — Includes
+
+Add the following to your `main.c`:
+
+```c
+/* USER CODE BEGIN Includes */
+#include "sts3215_regs.h"
+#include "sts3215_protocol.h"
+#include "sts3215_hal.h"
+/* USER CODE END Includes */
+```
+
+---
+
+### 5 — Minimal Example
+
+The following example initializes the driver, sends a **PING** instruction to servo ID 1, then moves it back and forth between two positions every 2 seconds.
+
+```c
+/* USER CODE BEGIN Includes */
+#include "sts3215_regs.h"
+#include "sts3215_protocol.h"
+#include "sts3215_hal.h"
+/* USER CODE END Includes */
+
+/* USER CODE BEGIN PV */
+static STS3215_HAL_Handle_t hservo;
+static uint8_t tx_frame[STS3215_TX_BUF_SIZE];
+/* USER CODE END PV */
+
+/* USER CODE BEGIN 0 */
+static void on_reply(const STS3215_Reply_t *reply,
+                     uint8_t reply_idx,
+                     STS3215_Status_t status,
+                     void *ctx) {
+    (void)reply_idx;
+    (void)ctx;
+
+    if (status == STS3215_ERR_SERVO_FAULT) {
+        return;
+    }
+
+    if (reply->data_len == 0) {
+    } else if (reply->data_len >= 2) {
+        int16_t pos = STS3215_UnpackS16LE(reply->data);
+        float   deg = STS3215_StepsToDeg(pos);
+        (void)pos;
+        (void)deg;
+    }
+}
+
+static void on_error(STS3215_HAL_Error_t err, void *ctx)
+{
+    (void)err;
+    (void)ctx;
+}
+/* USER CODE END 0 */
+
+int main(void)
+{
+    HAL_Init();
+    SystemClock_Config();
+    MX_GPIO_Init();
+    MX_DMA_Init();
+    MX_USART2_UART_Init();
+
+    /* USER CODE BEGIN 2 */
+
+    /*  Initialise the driver */
+    STS3215_HAL_Init(&hservo, &huart2, 10U, on_reply on_error, NULL);
+    STS3215_HAL_RegisterInstance(&hservo);
+
+    /* Ping servo ID 1 */
+    int16_t len = STS3215_BuildPing(tx_frame, sizeof(tx_frame), 1U);
+    if (len > 0) {
+        STS3215_HAL_SendFrame(&hservo, tx_frame, (uint16_t)len, false, 1U);
+    }
+
+    STS3215_MotionCmd_t cmd = {
+        .acceleration  = 50
+        .target_pos    = 1024,
+        .running_time  = 0,     /* unused in position mode */
+        .running_speed = 1000,  
+    };
+
+    uint32_t last_move_ms = HAL_GetTick();
+    uint8_t  toggle       = 0U;
+
+    /* USER CODE END 2 */
+
+    while (1)
+    {
+        /* USER CODE BEGIN WHILE */
+        STS3215_HAL_Process(&hservo);
+
+        bool bus_is_free = STS3215_HAL_IsIdle(&hservo);
+        uint32_t elapsed_ms = HAL_GetTick() - last_move_ms;
+        bool time_has_elapsed = (elapsed_ms >= 2000U);
+
+        if (bus_is_free && time_has_elapsed)
+        {
+            last_move_ms = HAL_GetTick();
+
+            /* Alternate the target position on each iteration:
+             *   toggle = 0 → move to position 1024 (≈ 90°)
+             *   toggle = 1 → move to position 3072 (≈ 270°) */
+            if (toggle == 0U)
+            {
+                cmd.target_pos = 1024;
+                toggle = 1;
+            }
+            else
+            {
+                cmd.target_pos = 3072;
+                toggle = 0;
+            }
+
+            len = STS3215_BuildMotionCmd(tx_frame, sizeof(tx_frame), 1U, &cmd);
+
+            if (len > 0)
+            {
+                STS3215_HAL_SendFrame(&hservo, tx_frame, (uint16_t)len, false, 1U);
+            }
+        }
+
+        /* USER CODE END WHILE */
+    }
+}
+```
+
+More detailled examples are available in the [`examples/`](./examples) folder.
 
 ## Contributions
 
 Contributions are always welcome!
 
-* **Report Issues:** Found a bug or have a feature request? Create a new issue [here.](https://github.com/Mowibox/stm32-sts3215-lib/issues/new/choose)
-* **Fix Bugs & Add Features:** Find out where you can lend a hand by checking out [existing issues.](https://github.com/Mowibox/stm32-sts3215-lib/issues)
+- **Report Issues:** Found a bug or have a feature request? Create a new issue [here.](https://github.com/Mowibox/stm32-sts3215-lib/issues/new/choose)
+- **Fix Bugs & Add Features:** Find out where you can lend a hand by checking out [existing issues.](https://github.com/Mowibox/stm32-sts3215-lib/issues)
 
 ## License
 
