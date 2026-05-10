@@ -120,7 +120,7 @@ In the **NVIC** tab, enable the following interrupts and set them to the **same 
 ☑ DMA1 Channel[Y] global interrupt — Preemption Priority 5
 ```
 
-Where [X] and [Y] are the channels you have defined for your DMA (TX/RX)
+Where [X] and [Y] are the channels you have defined for your DMA (TX/RX).
 
 > [!WARNING]
 > De not forget to **regenerate code** before proceeding!
