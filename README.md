@@ -19,7 +19,7 @@ Designed to be easily dropped into any STM32CubeMX generated project.
 | Section | Description |
 | ------- | ----------- |
 | [Features](#features) | Key functionalities of the library |
-| [Author](#author) | Main contributors information |
+| [Author](#author) | Main contributors' information |
 | [Documentation](#documentation) | Links to protocol manual and STS3215 memory table registry |
 | [Usage & Integration](#usage--integration) | Instructions for integrating the `inc/` and `src/` files into a project. |
 | [Contributions](#contributions) | How to contribute to the repository |
@@ -46,7 +46,7 @@ Designed to be easily dropped into any STM32CubeMX generated project.
 
 ## Documentation
 
-- [Communication Protocol Manual](./docs/protocol_manual.md) (Feetech Official Protocol Manual for Smarts Servos).
+- [Communication Protocol Manual](./docs/protocol_manual.md) (Feetech Official Protocol Manual for Smart Servos).
 - [STS3215 Memory Table](./docs/sts3215_memory_table.md) (Register addresses, default values, and operational constraints).
 
 ## Usage & Integration
@@ -80,7 +80,7 @@ PA3 → USART2_RX
 
 #### 2.2 USART2 — Mode
 
-Go the the **Connectivity** section and configure the chosen USART:
+Go to the **Connectivity** section and configure the chosen USART:
 
 ```text
   Mode: Asynchronous
@@ -89,7 +89,7 @@ Go the the **Connectivity** section and configure the chosen USART:
 
 #### 2.3 USART2 — Parameter Settings
 
-Click on the **Parameters Settings** tab of your USART and configure it as shown below:
+Click on the **Parameter Settings** tab of your USART and configure it as shown below:
 
 | Parameter | Value |
 | --------- | ----- |
@@ -219,7 +219,7 @@ int main(void)
     /* USER CODE BEGIN 2 */
 
     /*  Initialise the driver */
-    STS3215_HAL_Init(&hservo, &huart2, 10U, on_reply on_error, NULL);
+    STS3215_HAL_Init(&hservo, &huart2, 10U, on_reply, on_error, NULL);
     STS3215_HAL_RegisterInstance(&hservo);
 
     /* Ping servo ID 1 */
@@ -229,7 +229,7 @@ int main(void)
     }
 
     STS3215_MotionCmd_t cmd = {
-        .acceleration  = 50
+        .acceleration  = 50,
         .target_pos    = 1024,
         .running_time  = 0,     /* unused in position mode */
         .running_speed = 1000,  
@@ -280,7 +280,7 @@ int main(void)
 }
 ```
 
-More detailled examples are available in the [`examples/`](./examples) folder.
+More detailed examples are available in the [`examples/`](./examples) folder.
 
 ## Contributions
 
