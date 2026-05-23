@@ -126,7 +126,7 @@ In the **NVIC** tab, enable the following interrupts and set them to the **same 
 Where [X] and [Y] are the channels you have defined for your DMA (TX/RX).
 
 > [!WARNING]
-> De not forget to **regenerate code** before proceeding!
+> Do not forget to **regenerate code** before proceeding!
 
 ---
 
