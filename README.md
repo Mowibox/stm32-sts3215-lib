@@ -181,29 +181,26 @@ static uint8_t tx_frame[STS3215_TX_BUF_SIZE];
 /* USER CODE END PV */
 
 /* USER CODE BEGIN 0 */
-static void on_reply(const STS3215_Reply_t *reply,
-                     uint8_t reply_idx,
-                     STS3215_Status_t status,
-                     void *ctx) {
-    (void)reply_idx;
+static void on_reply(const STS3215_Reply_t *reply, uint8_t idx, STS3215_Status_t status, void *ctx)
+{
+    (void)idx;
     (void)ctx;
 
-    if (status == STS3215_ERR_SERVO_FAULT) {
-        return;
+    g_reply_id       = reply->id;
+    g_reply_error    = reply->error;
+    g_reply_status   = status;
+    g_reply_data_len = reply->data_len;
+
+    uint8_t copy_len = (reply->data_len <= STS3215_REPLY_DATA_MAX) ? reply->data_len : STS3215_REPLY_DATA_MAX;
+    for (uint8_t i = 0; i < copy_len; i++) {
+        g_reply_data[i] = reply->data[i];
     }
 
-    if (reply->data_len == 0) {
-    } else if (reply->data_len >= 2) {
-        int16_t pos = STS3215_UnpackS16LE(reply->data);
-        float   deg = STS3215_StepsToDeg(pos);
-        (void)pos;
-        (void)deg;
-    }
+    g_reply_received = 1;
 }
 
 static void on_error(STS3215_HAL_Error_t err, void *ctx)
 {
-    (void)err;
     (void)ctx;
 }
 /* USER CODE END 0 */

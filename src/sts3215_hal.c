@@ -50,37 +50,6 @@ static STS3215_HAL_Handle_t *s_instance = NULL;
  * ========================================================================= */
 
 /**
- * @brief Reset RX buffer and start DMA reception with IDLE line detection.
- * Called exclusively from STS3215_HAL_TxCpltCallback (IRQ context).
- */
-static void prv_start_rx(STS3215_HAL_Handle_t *hservo)
-{
-	memset(hservo->rx_buf, 0, STS3215_HAL_RX_BUF_SIZE);
-	hservo->rx_received_len = 0U;
-
-	__HAL_UART_FLUSH_DRREGISTER(hservo->huart);
-	__HAL_UART_CLEAR_OREFLAG(hservo->huart);
-
-	HAL_StatusTypeDef status = HAL_UARTEx_ReceiveToIdle_DMA(
-			hservo->huart,
-			hservo->rx_buf,
-			STS3215_HAL_RX_BUF_SIZE
-	);
-
-	if (status != HAL_OK) {
-		hservo->last_error = STS3215_HAL_ERR_DMA_RX;
-		hservo->state = STS3215_HAL_STATE_ERROR;
-		if (hservo->on_error != NULL) {
-			hservo->on_error(STS3215_HAL_ERR_DMA_RX, hservo->user_ctx);
-		}
-		hservo->state = STS3215_HAL_STATE_IDLE;
-	} else {
-		hservo->state = STS3215_HAL_STATE_RX_BUSY;
-		hservo->tx_timestamp_ms  = HAL_GetTick();
-	}
-}
-
-/**
  * @brief Parse all expected reply frames from the RX buffer.
  * Called from IRQ context (RxEventCallback).
  */
@@ -133,9 +102,7 @@ void STS3215_HAL_Init(STS3215_HAL_Handle_t *hservo,
 	memset(hservo, 0, sizeof(STS3215_HAL_Handle_t));
 
 	hservo->huart = huart;
-	hservo->reply_timeout_ms = (reply_timeout_ms > 0U)
-                                		 ? reply_timeout_ms
-                                				 : STS3215_HAL_REPLY_TIMEOUT_MS;
+	hservo->reply_timeout_ms = (reply_timeout_ms > 0U) ? reply_timeout_ms : STS3215_HAL_REPLY_TIMEOUT_MS;
 	hservo->on_reply = on_reply;
 	hservo->on_error  = on_error;
 	hservo->user_ctx = user_ctx;
@@ -173,6 +140,15 @@ STS3215_Status_t STS3215_HAL_SendFrame(STS3215_HAL_Handle_t *hservo,
 	hservo->expected_replies  = (is_broadcast ? 0U : expected_replies);
 	hservo->state = STS3215_HAL_STATE_TX_BUSY;
 
+	if (!is_broadcast && expected_replies > 0) {
+		memset(hservo->rx_buf, 0, STS3215_HAL_RX_BUF_SIZE);
+		hservo->rx_received_len = 0U;
+		__HAL_UART_FLUSH_DRREGISTER(hservo->huart);
+		__HAL_UART_CLEAR_OREFLAG(hservo->huart);
+
+		HAL_UARTEx_ReceiveToIdle_DMA(hservo->huart, hservo->rx_buf, STS3215_HAL_RX_BUF_SIZE);
+	}
+
 	HAL_StatusTypeDef status = HAL_UART_Transmit_DMA(
 			hservo->huart,
 			hservo->tx_buf,
@@ -180,6 +156,9 @@ STS3215_Status_t STS3215_HAL_SendFrame(STS3215_HAL_Handle_t *hservo,
 	);
 
 	if (status != HAL_OK) {
+		if (!is_broadcast && expected_replies > 0) {
+			HAL_UART_DMAStop(hservo->huart);
+		}
 		hservo->state = STS3215_HAL_STATE_ERROR;
 		hservo->last_error = STS3215_HAL_ERR_DMA_TX;
 		if (hservo->on_error != NULL) {
@@ -250,7 +229,8 @@ void STS3215_HAL_TxCpltCallback(STS3215_HAL_Handle_t *hservo)
 	if (hservo->is_broadcast || hservo->expected_replies == 0U) {
 		hservo->state = STS3215_HAL_STATE_IDLE;
 	} else {
-		prv_start_rx(hservo);
+		hservo->state = STS3215_HAL_STATE_RX_BUSY;
+		hservo->tx_timestamp_ms = HAL_GetTick();
 	}
 }
 
@@ -284,9 +264,7 @@ void STS3215_HAL_ErrorCallback(STS3215_HAL_Handle_t *hservo)
 	HAL_UART_DMAStop(hservo->huart);
 	__HAL_UART_FLUSH_DRREGISTER(hservo->huart);
 
-	STS3215_HAL_Error_t err = (hservo->state == STS3215_HAL_STATE_TX_BUSY)
-                            		   ? STS3215_HAL_ERR_DMA_TX
-                            				   : STS3215_HAL_ERR_DMA_RX;
+	STS3215_HAL_Error_t err = (hservo->state == STS3215_HAL_STATE_TX_BUSY) ? STS3215_HAL_ERR_DMA_TX : STS3215_HAL_ERR_DMA_RX;
 
 	hservo->last_error = err;
 	hservo->state      = STS3215_HAL_STATE_IDLE;
