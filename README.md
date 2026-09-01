@@ -284,7 +284,7 @@ More detailed examples are available in the [`examples/`](./examples) folder.
 
 ## Testing
 
-The protocol layer (`sts3215_protocol.c`) has zero STM32 dependency, so it's
+The protocol layer (`sts3215_protocol.c`) has zero STM32 dependency, so it can be
 unit-tested on the host instead of on target hardware:
 
 ```sh
@@ -292,10 +292,7 @@ cd tests
 make test
 ```
 
-See [`tests/`](./tests) for what's covered; [`.github/workflows/tests.yml`](./.github/workflows/tests.yml)
-runs the same suite against `gcc` and `clang` on every push and pull request,
-and [`.github/workflows/lint.yml`](./.github/workflows/lint.yml) runs static
-analysis (`cppcheck`) over the same portable C sources.
+See [`tests/`](./tests) for more details.
 
 ## Contributions
 
