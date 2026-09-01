@@ -19,10 +19,6 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y cppcheck
 
       - name: Static analysis (protocol layer + unit tests)
-        # sts3215_hal.{c,h} and examples/ pull in the vendor STM32Cube HAL
-        # headers, which aren't part of this repo — cppcheck has nothing
-        # to resolve them against, so they're out of scope here. The
-        # protocol layer is pure C99 and fully self-contained.
         run: |
           cppcheck --std=c99 --language=c --error-exitcode=1 --inline-suppr \
             --suppress=normalCheckLevelMaxBranches \
