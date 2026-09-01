@@ -7,6 +7,8 @@ A lightweight C library designed for STM32 microcontrollers (using STM32CubeIDE 
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-lightgrey.svg)](https://opensource.org/licenses/Apache-2.0)
 ![Issues](https://img.shields.io/github/issues/Mowibox/stm32-sts3215-lib)
 ![Stars](https://img.shields.io/github/stars/Mowibox/stm32-sts3215-lib?style=social)
+![CI: Linters](https://github.com/Mowibox/stm32-sts3215-lib/actions/workflows/lint.yml/badge.svg)
+![CI: Unit Tests](https://github.com/Mowibox/stm32-sts3215-lib/actions/workflows/tests.yml/badge.svg)
 
 <p align="center">
   <img alt="STS3215 Feetech Servo" src="sts3215.png"/>
@@ -22,20 +24,21 @@ Designed to be easily dropped into any STM32CubeMX generated project.
 | [Author](#author) | Main contributors' information |
 | [Documentation](#documentation) | Links to protocol manual and STS3215 memory table registry |
 | [Usage & Integration](#usage--integration) | Instructions for integrating the `inc/` and `src/` files into a project. |
+| [Testing](#testing) | Running the host-side unit tests locally and in CI |
 | [Contributions](#contributions) | How to contribute to the repository |
 | [License](#license) | Licensing information |
 
 ## Features
 
-- **RS485 hardware DE management** — Driver Enable pin controlled directly by the STM32 USART peripheral in RS485 mode (no GPIO toggling, no timing risk)
-- **Non-blocking DMA transfers** — TX and RX both run on DMA with IDLE line detection, freeing the CPU and RTOS scheduler during bus transactions
-- **Layered architecture** — Protocol logic (`sts3215_protocol.c`) is fully decoupled from the HAL layer (`sts3215_hal.c`); the protocol layer has zero STM32 dependency and can be unit-tested on a host PC with any C99 compiler
-- **Complete register coverage** — All STS3215 EEPROM and SRAM registers documented with addresses, sizes, default values, units, and access rights (`sts3215_regs.h`)
-- **Full instruction set** — Builders for every protocol instruction: `PING`, `READ`, `WRITE`, `REG_WRITE`, `ACTION`, `SYNC_READ`, `SYNC_WRITE`, `RESET`, and `RESET_TURNS`
-- **Atomic motion commands** — Position, speed, and acceleration packed into a single write frame (registers `0x29`→`0x2F`) to prevent partial-update race conditions
-- **Synchronised multi-servo control** — `REG_WRITE` + broadcast `ACTION` pattern for frame-accurate simultaneous motion across any number of servos on the bus
-- **EEPROM write protection** — Explicit `UnlockEEPROM` / `LockEEPROM` helpers enforce the mandatory write-lock sequence before any persistent configuration change
-- **Unit conversion helpers** — Steps <-> degrees <-> radians, raw current -> milliamps, raw voltage -> volts, all as inline-friendly functions.
+- **RS485 hardware DE management** - Driver Enable pin controlled directly by the STM32 USART peripheral in RS485 mode (no GPIO toggling, no timing risk)
+- **Non-blocking DMA transfers** - TX and RX both run on DMA with IDLE line detection, freeing the CPU and RTOS scheduler during bus transactions
+- **Layered architecture** - Protocol logic (`sts3215_protocol.c`) is fully decoupled from the HAL layer (`sts3215_hal.c`); the protocol layer has zero STM32 dependency and can be unit-tested on a host PC with any C99 compiler
+- **Complete register coverage** - All STS3215 EEPROM and SRAM registers documented with addresses, sizes, default values, units, and access rights (`sts3215_regs.h`)
+- **Full instruction set** - Builders for every protocol instruction: `PING`, `READ`, `WRITE`, `REG_WRITE`, `ACTION`, `SYNC_READ`, `SYNC_WRITE`, `RESET`, and `RESET_TURNS`
+- **Atomic motion commands** - Position, speed, and acceleration packed into a single write frame (registers `0x29`→`0x2F`) to prevent partial-update race conditions
+- **Synchronised multi-servo control** - `REG_WRITE` + broadcast `ACTION` pattern for frame-accurate simultaneous motion across any number of servos on the bus
+- **EEPROM write protection** - Explicit `UnlockEEPROM` / `LockEEPROM` helpers enforce the mandatory write-lock sequence before any persistent configuration change
+- **Unit conversion helpers** - Steps <-> degrees <-> radians, raw current -> milliamps, raw voltage -> volts, all as inline-friendly functions.
 
 ## Author
 
@@ -51,7 +54,7 @@ Designed to be easily dropped into any STM32CubeMX generated project.
 
 ## Usage & Integration
 
-### 1 — Hardware Requirements
+### 1 - Hardware Requirements
 
 | Component | Specification |
 | --------- | ------------- |
@@ -61,7 +64,7 @@ Designed to be easily dropped into any STM32CubeMX generated project.
 
 ---
 
-### 2 — STM32CubeIDE .ioc Configuration
+### 2 - STM32CubeIDE .ioc Configuration
 
 #### 2.1 Pinout
 
@@ -78,7 +81,7 @@ PA3 → USART2_RX
 > [!NOTE]
 > You can assign and use any other USART that has a driver enable pin, provided you make the necessary changes to the files afterward.
 
-#### 2.2 USART2 — Mode
+#### 2.2 USART2 - Mode
 
 Go to the **Connectivity** section and configure the chosen USART:
 
@@ -87,7 +90,7 @@ Go to the **Connectivity** section and configure the chosen USART:
   Hardware Flow Control (RS485): ☑ Enabled
 ```
 
-#### 2.3 USART2 — Parameter Settings
+#### 2.3 USART2 - Parameter Settings
 
 Click on the **Parameter Settings** tab of your USART and configure it as shown below:
 
@@ -104,7 +107,7 @@ Click on the **Parameter Settings** tab of your USART and configure it as shown 
 | DE Assertion Time | `8 Sample Time Unit` |
 | DE Deassertion Time | `8 Sample Time Unit` |
 
-#### 2.4 USART2 — DMA Settings
+#### 2.4 USART2 - DMA Settings
 
 Go to **System Core > DMA** tab to add two DMA channels:
 
@@ -118,9 +121,9 @@ Go to **System Core > DMA** tab to add two DMA channels:
 In the **NVIC** tab, enable the following interrupts and set them to the **same preemption priority** (e.g., `5`):
 
 ```text
-☑ USART2 global interrupt — Preemption Priority 5
-☑ DMA1 Channel[X] global interrupt — Preemption Priority 5
-☑ DMA1 Channel[Y] global interrupt — Preemption Priority 5
+☑ USART2 global interrupt - Preemption Priority 5
+☑ DMA1 Channel[X] global interrupt - Preemption Priority 5
+☑ DMA1 Channel[Y] global interrupt - Preemption Priority 5
 ```
 
 Where [X] and [Y] are the channels you have defined for your DMA (TX/RX).
@@ -130,7 +133,7 @@ Where [X] and [Y] are the channels you have defined for your DMA (TX/RX).
 
 ---
 
-### 3 — File Placement
+### 3 - File Placement
 
 Copy the library files into your CubeIDE project as follows:
 
@@ -150,7 +153,7 @@ YourProject/
 
 ---
 
-### 4 — Includes
+### 4 - Includes
 
 Add the following to your `main.c`:
 
@@ -164,7 +167,7 @@ Add the following to your `main.c`:
 
 ---
 
-### 5 — Minimal Example
+### 5 - Minimal Example
 
 The following example initializes the driver, sends a **PING** instruction to servo ID 1, then moves it back and forth between two positions every 2 seconds.
 
@@ -278,6 +281,21 @@ int main(void)
 ```
 
 More detailed examples are available in the [`examples/`](./examples) folder.
+
+## Testing
+
+The protocol layer (`sts3215_protocol.c`) has zero STM32 dependency, so it's
+unit-tested on the host instead of on target hardware:
+
+```sh
+cd tests
+make test
+```
+
+See [`tests/`](./tests) for what's covered; [`.github/workflows/tests.yml`](./.github/workflows/tests.yml)
+runs the same suite against `gcc` and `clang` on every push and pull request,
+and [`.github/workflows/lint.yml`](./.github/workflows/lint.yml) runs static
+analysis (`cppcheck`) over the same portable C sources.
 
 ## Contributions
 

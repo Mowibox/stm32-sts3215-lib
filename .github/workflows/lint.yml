@@ -1,0 +1,33 @@
+name: Linters
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  cppcheck:
+    name: cppcheck
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install cppcheck
+        run: sudo apt-get update && sudo apt-get install -y cppcheck
+
+      - name: Static analysis (protocol layer + unit tests)
+        # sts3215_hal.{c,h} and examples/ pull in the vendor STM32Cube HAL
+        # headers, which aren't part of this repo — cppcheck has nothing
+        # to resolve them against, so they're out of scope here. The
+        # protocol layer is pure C99 and fully self-contained.
+        run: |
+          cppcheck --std=c99 --language=c --error-exitcode=1 --inline-suppr \
+            --suppress=normalCheckLevelMaxBranches \
+            -I inc \
+            src/sts3215_protocol.c \
+            inc/sts3215_protocol.h \
+            inc/sts3215_regs.h \
+            tests/test_protocol.c
