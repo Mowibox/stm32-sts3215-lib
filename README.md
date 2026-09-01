@@ -5,10 +5,10 @@ A lightweight C library designed for STM32 microcontrollers (using STM32CubeIDE 
 ![Feetech](https://img.shields.io/badge/Feetech-Bus%20Servo-ee2524?)
 ![STM32](https://img.shields.io/badge/STM32-HAL%20C-03234b?logo=stmicroelectronics&logoColor=white)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-lightgrey.svg)](https://opensource.org/licenses/Apache-2.0)
-![Issues](https://img.shields.io/github/issues/Mowibox/stm32-sts3215-lib)
-![Stars](https://img.shields.io/github/stars/Mowibox/stm32-sts3215-lib?style=social)
 ![CI: Linters](https://github.com/Mowibox/stm32-sts3215-lib/actions/workflows/lint.yml/badge.svg)
 ![CI: Unit Tests](https://github.com/Mowibox/stm32-sts3215-lib/actions/workflows/tests.yml/badge.svg)
+![Issues](https://img.shields.io/github/issues/Mowibox/stm32-sts3215-lib)
+![Stars](https://img.shields.io/github/stars/Mowibox/stm32-sts3215-lib?style=social)
 
 <p align="center">
   <img alt="STS3215 Feetech Servo" src="sts3215.png"/>
